@@ -188,7 +188,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/gas-station-recommendation/issues)
-- **Email**: your.email@example.com
+- **Email**: ge.zhang.phys@gmail.com
 - **Documentation**: [Wiki](https://github.com/yourusername/gas-station-recommendation/wiki)
 
 ## 🚀 Roadmap
