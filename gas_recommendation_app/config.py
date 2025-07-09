@@ -40,7 +40,7 @@ class Config:
     TYPICAL_SPEED_LOCAL: int = 40    # mph
     
     # LLM settings
-    LLM_MODEL: str = "claude-3-sonnet-20240229"  # or "gpt-4"
+    LLM_MODEL: str = "claude-3-5-haiku-20241022"  # or "gpt-4"
     MAX_TOKENS: int = 1000
     TEMPERATURE: float = 0.1
     
