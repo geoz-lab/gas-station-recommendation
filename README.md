@@ -1,6 +1,27 @@
 # Gas Station Recommendation App
 
+[![Build Status](https://github.com/geoz-lab/gas-station-recommendation/workflows/Deploy%20Gas%20Station%20Recommendation%20App/badge.svg)](https://github.com/geoz-lab/gas-station-recommendation/actions)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Flask](https://img.shields.io/badge/Flask-3.0.0-green.svg)](https://flask.palletsprojects.com/)
+[![Status: Active](https://img.shields.io/badge/Status-Active-success.svg)](https://github.com/geoz-lab/gas-station-recommendation)
+
 An AI-powered gas station recommendation app that helps you find the best gas stations based on cost, distance, and travel time. Get intelligent recommendations from Claude AI to save money on gas!
+
+## 📋 Table of Contents
+- [Features](#-features)
+- [Prerequisites](#-prerequisites)
+- [Installation & Setup](#️-installation--setup)
+- [How to Use](#-how-to-use-the-app)
+- [Understanding Results](#-understanding-your-results)
+- [Pro Tips](#-pro-tips)
+- [Troubleshooting](#-troubleshooting)
+- [Security & Privacy](#-security--privacy)
+- [Mobile Usage](#-mobile-usage)
+- [Getting Help](#-getting-help)
+- [Project Structure](#️-project-structure)
+- [License](#-license)
+- [Contributing](#-contributing)
 
 ## 🚀 Features
 
@@ -221,11 +242,40 @@ gas_station_recommendation/
 
 ## 📄 License
 
-This project is for educational and personal use. Please respect the terms of service for Google Maps and Claude AI APIs.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**Note**: While this project is open source, please respect the terms of service for the external APIs used (Google Maps and Claude AI).
 
 ## 🤝 Contributing
 
-Feel free to submit issues and enhancement requests!
+We welcome contributions! Here's how you can help:
+
+### 🐛 **Reporting Bugs**
+- Use the [Issues](https://github.com/geoz-lab/gas-station-recommendation/issues) page
+- Include steps to reproduce the bug
+- Describe your environment (OS, Python version, etc.)
+
+### 💡 **Feature Requests**
+- Submit feature requests via Issues
+- Explain the use case and benefits
+- Consider if it fits the project's scope
+
+### 🔧 **Code Contributions**
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Test thoroughly
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+### 📝 **Code Style**
+- Follow PEP 8 for Python code
+- Add comments for complex logic
+- Update documentation as needed
+- Test your changes before submitting
+
+**Thank you for contributing!** 🚀
 
 ---
 
