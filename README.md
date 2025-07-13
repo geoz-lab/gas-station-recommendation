@@ -8,6 +8,8 @@
 
 An AI-powered gas station recommendation web app that helps you find the best gas stations based on cost, distance, travel time, and user review. Get intelligent recommendations from AI agent to save money on gas!
 
+![How to Use](./how_to_use.gif)
+
 ## 📋 Table of Contents
 - [Features](#-features)
 - [Prerequisites](#-prerequisites)
@@ -279,9 +281,14 @@ We welcome contributions! Here's how you can help:
 - Test your changes before submitting
 
 ## 🤔 **Future Directions**
-- Accurate gas price input (likely from Gasbuddy or AAA)
-- Better analysis, e.g. search gas stations along the trip
-- Fancy web design (I am not familiar with frontend)
+
+- Integrate live gas prices (GasBuddy, AAA, Google Maps, etc.)
+* Add route-based gas station search (gas along a trip and avoid tolls)
+* Improve travel time estimates using real-time traffic
+* Cache API results to reduce costs and improve speed
+* Maybe voice input for hands-free use
+* Add backup/fallback APIs for price and location data
+* A better UI interface (I am not familiar with frontend)
 
 **Thank you for contributing!** 🚀
 
