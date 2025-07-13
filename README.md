@@ -1,4 +1,4 @@
-# Gas Station Recommendation App
+# Gas Station Recommendation Web Agent
 
 [![Build Status](https://github.com/geoz-lab/gas-station-recommendation/workflows/Deploy%20Gas%20Station%20Recommendation%20App/badge.svg)](https://github.com/geoz-lab/gas-station-recommendation/actions)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
