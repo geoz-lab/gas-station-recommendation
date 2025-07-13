@@ -18,12 +18,13 @@ class LLMService:
         self.max_tokens = Config.MAX_TOKENS
         self.temperature = Config.TEMPERATURE
     
-    def analyze_with_llm(self, station_data: List[Dict[str, Any]]) -> str:
+    def analyze_with_llm(self, station_data: List[Dict[str, Any]], fuel_grade: str = "87") -> str:
         """
         Analyze gas station data with LLM and provide recommendations
         
         Args:
             station_data: List of gas station data
+            fuel_grade: Fuel grade to consider (87, 89, 91)
             
         Returns:
             str: LLM analysis and recommendations
@@ -32,7 +33,7 @@ class LLMService:
             return "No gas stations found to analyze."
         
         # Format input for LLM
-        input_prompt = self._format_station_data(station_data)
+        input_prompt = self._format_station_data(station_data, fuel_grade)
         
         # Try Claude first, then OpenAI, then fallback
         try:
@@ -41,42 +42,63 @@ class LLMService:
             elif self.openai_api_key:
                 return self._call_openai_api(input_prompt)
             else:
-                return self._generate_mock_analysis(station_data)
+                return self._generate_mock_analysis(station_data, fuel_grade)
         except Exception as e:
             print(f"⚠️  LLM API error: {e}")
-            return self._generate_mock_analysis(station_data)
+            return self._generate_mock_analysis(station_data, fuel_grade)
     
-    def _format_station_data(self, stations: List[Dict[str, Any]]) -> str:
+    def _format_station_data(self, stations: List[Dict[str, Any]], fuel_grade: str = "87") -> str:
         """
         Format station data for LLM input
         
         Args:
             stations: List of gas station data
+            fuel_grade: Fuel grade to consider (87, 89, 91)
             
         Returns:
             str: Formatted prompt
         """
-        prompt = """You are an expert gas station recommendation assistant. Analyze the following gas stations and provide a detailed recommendation ranking the top 5 stations.
+        prompt = f"""You are an expert gas station recommendation assistant. Analyze the following gas stations and provide a detailed recommendation ranking the top 5 stations.
+
+IMPORTANT: The user is looking for {fuel_grade} octane fuel. Consider the specific price for {fuel_grade} octane when available, not just the lowest price.
 
 Consider these factors in your analysis:
-1. Total cost (fuel cost + travel cost)
+1. Total cost (fuel cost + travel cost) for {fuel_grade} octane fuel
 2. Distance and travel time
 3. Brand reputation and ratings
 4. Overall value for money
+5. Fuel grade availability and pricing
 
-Please provide:
-- A brief analysis of the options
-- Top 5 recommendations with reasoning
-- Any important considerations or warnings
+Please provide your analysis in this exact format:
+
+**BRIEF ANALYSIS:**
+[Provide 2-3 sentences about the overall options and market conditions]
+
+**TOP 5 RECOMMENDATIONS:**
+Please list your top 5 recommendations in this format:
+1. [Station Name] - [Brief reason]
+2. [Station Name] - [Brief reason]
+3. [Station Name] - [Brief reason]
+4. [Station Name] - [Brief reason]
+5. [Station Name] - [Brief reason]
+
+Then provide a brief summary paragraph of your recommendations.
+
+**ADDITIONAL CONSIDERATIONS:**
+[Any important warnings, tips, or additional information]
 
 Here are the gas station options:
 
 """
         
         for idx, station in enumerate(stations[:10], 1):  # Limit to top 10 for analysis
+            # Get the correct price for the selected fuel grade
+            gas_prices = station.get('gas_prices', {})
+            selected_price = gas_prices.get(fuel_grade, station.get('price_per_gallon', 0))
+            
             prompt += f"""Gas Station #{idx}: {station.get('name', 'Unknown')}
 - Brand: {station.get('brand', 'Unknown')}
-- Price: ${station.get('price_per_gallon', 0):.2f}/gallon
+- {fuel_grade} Octane Price: ${selected_price:.2f}/gallon
 - Distance: {station.get('distance_miles', 0):.1f} miles
 - Travel Time: {station.get('travel_time_minutes', 0)} minutes
 - Fuel Cost: ${station.get('fuel_cost', 0):.2f}
@@ -84,6 +106,7 @@ Here are the gas station options:
 - Total Cost: ${station.get('total_cost', 0):.2f}
 - Rating: {station.get('rating', 'N/A')}
 - Address: {station.get('address', 'N/A')}
+- All Fuel Grades: {gas_prices}
 
 """
         
@@ -164,12 +187,13 @@ Here are the gas station options:
         result = response.json()
         return result['choices'][0]['message']['content']
     
-    def _generate_mock_analysis(self, stations: List[Dict[str, Any]]) -> str:
+    def _generate_mock_analysis(self, stations: List[Dict[str, Any]], fuel_grade: str = "87") -> str:
         """
         Generate mock analysis when LLM APIs are unavailable
         
         Args:
             stations: List of gas station data
+            fuel_grade: Fuel grade to consider (87, 89, 91)
             
         Returns:
             str: Mock analysis
@@ -180,20 +204,21 @@ Here are the gas station options:
         # Sort by total cost
         sorted_stations = sorted(stations, key=lambda x: x.get('total_cost', float('inf')))
         
-        analysis = "🤖 AI Analysis (Mock Mode)\n\n"
+        analysis = f"🤖 AI Analysis (Mock Mode) - {fuel_grade} Octane Fuel\n\n"
         analysis += "Based on the available gas stations, here are my top 5 recommendations:\n\n"
         
         for i, station in enumerate(sorted_stations[:5], 1):
             name = station.get('name', 'Unknown Station')
             brand = station.get('brand', 'Unknown')
-            price = station.get('price_per_gallon', 0)
+            gas_prices = station.get('gas_prices', {})
+            selected_price = gas_prices.get(fuel_grade, station.get('price_per_gallon', 0))
             distance = station.get('distance_miles', 0)
             travel_time = station.get('travel_time_minutes', 0)
             total_cost = station.get('total_cost', 0)
             rating = station.get('rating', 'N/A')
             
             analysis += f"#{i}: {name} ({brand})\n"
-            analysis += f"   💰 Price: ${price:.2f}/gallon | Total Cost: ${total_cost:.2f}\n"
+            analysis += f"   💰 {fuel_grade} Octane Price: ${selected_price:.2f}/gallon | Total Cost: ${total_cost:.2f}\n"
             analysis += f"   📍 Distance: {distance:.1f} miles | ⏱️  Time: {travel_time} min\n"
             analysis += f"   ⭐ Rating: {rating}\n\n"
         
@@ -263,9 +288,9 @@ Here are the gas station options:
 llm_service = LLMService()
 
 # Convenience functions
-def analyze_with_llm(station_data: List[Dict[str, Any]]) -> str:
+def analyze_with_llm(station_data: List[Dict[str, Any]], fuel_grade: str = "87") -> str:
     """Convenience function for LLM analysis"""
-    return llm_service.analyze_with_llm(station_data)
+    return llm_service.analyze_with_llm(station_data, fuel_grade)
 
 def summarize_stations(stations: List[Dict[str, Any]]) -> str:
     """Convenience function for station summary"""

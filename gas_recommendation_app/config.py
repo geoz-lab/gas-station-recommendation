@@ -6,7 +6,15 @@ import os
 from typing import Optional
 from pathlib import Path
 
-# Load environment variables from .env file
+# Import secure configuration
+try:
+    from secure_config import get_api_key
+except ImportError:
+    # Fallback if secure_config is not available
+    def get_api_key(key_name: str) -> Optional[str]:
+        return os.getenv(key_name)
+
+# Load environment variables from .env file (for non-sensitive config)
 def load_env_file():
     """Load environment variables from .env file"""
     env_file = Path(".env")
@@ -24,10 +32,10 @@ load_env_file()
 class Config:
     """Application configuration"""
     
-    # API Keys (set these as environment variables)
-    GOOGLE_MAPS_API_KEY: Optional[str] = os.getenv('GOOGLE_MAPS_API_KEY')
-    CLAUDE_API_KEY: Optional[str] = os.getenv('CLAUDE_API_KEY')
-    OPENAI_API_KEY: Optional[str] = os.getenv('OPENAI_API_KEY')  # Alternative LLM
+    # API Keys (loaded securely)
+    GOOGLE_MAPS_API_KEY: Optional[str] = get_api_key('GOOGLE_MAPS_API_KEY')
+    CLAUDE_API_KEY: Optional[str] = get_api_key('CLAUDE_API_KEY')
+    OPENAI_API_KEY: Optional[str] = get_api_key('OPENAI_API_KEY')  # Alternative LLM
     
     # Default settings
     DEFAULT_MPG: float = float(os.getenv('DEFAULT_MPG', '25.0'))
@@ -40,7 +48,7 @@ class Config:
     TYPICAL_SPEED_LOCAL: int = 40    # mph
     
     # LLM settings
-    LLM_MODEL: str = "claude-3-5-haiku-20241022"  # or "gpt-4"
+    LLM_MODEL: str = "claude-3-5-haiku-20241022"  # Updated to haiku model
     MAX_TOKENS: int = 1000
     TEMPERATURE: float = 0.1
     

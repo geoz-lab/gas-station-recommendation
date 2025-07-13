@@ -7,6 +7,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_API_KEY }}&libraries=places" async defer></script>
+    <script>
+        // Make Google Maps API key available to JavaScript
+        window.googleMapsApiKey = '{{ config.GOOGLE_MAPS_API_KEY }}';
+    </script>
 </head>
 <body>
     <!-- Navigation -->
@@ -112,7 +117,7 @@
                                     <label for="searchRadius" class="form-label">
                                         <i class="fas fa-search me-1"></i>Search Radius (Miles)
                                     </label>
-                                    <input type="number" class="form-control" id="searchRadius" value="10" min="1" max="50" step="0.5">
+                                    <input type="number" class="form-control" id="searchRadius" value="5" min="1" max="50" step="0.5">
                                 </div>
                                 <div class="col-md-6 mb-3 d-flex align-items-end">
                                     <button type="submit" class="btn btn-primary btn-lg w-100">
@@ -153,6 +158,39 @@
                     <div class="card-body">
                         <div id="resultsContent">
                             <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Section -->
+        <div class="row mt-4" id="mapSection" style="display: none;">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3><i class="fas fa-map me-2"></i>Map</h3>
+                    </div>
+                    <div class="card-body p-0 position-relative">
+                        <div id="map" style="height: 500px; width: 100%;"></div>
+                        <div class="map-controls" id="mapControls" style="display: none;">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="app.resetMapView()">
+                                <i class="fas fa-home"></i> Reset View
+                            </button>
+                        </div>
+                        <div class="map-legend" id="mapLegend" style="display: none;">
+                            <div class="legend-item">
+                                <img src="https://maps.google.com/mapfiles/ms/icons/blue-dot.png" alt="Your Location" style="width: 16px; height: 16px;">
+                                <span>Your Location</span>
+                            </div>
+                            <div class="legend-item">
+                                <div style="width: 16px; height: 16px; background-color: #4CAF50; border-radius: 50%; border: 2px solid #2E7D32; display: inline-block;"></div>
+                                <span>Gas Station (Price)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div style="width: 16px; height: 16px; background-color: #FF4444; border-radius: 50%; border: 2px solid #CC0000; display: inline-block;"></div>
+                                <span>Recommended</span>
+                            </div>
                         </div>
                     </div>
                 </div>

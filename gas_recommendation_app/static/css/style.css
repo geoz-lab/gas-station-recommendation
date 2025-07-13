@@ -126,6 +126,12 @@ body {
     border: 2px solid var(--success-color);
 }
 
+.station-card.regular {
+    border-left-color: var(--secondary-color);
+    background: white;
+    border: 1px solid #e9ecef;
+}
+
 /* Price display */
 .price-display {
     font-size: 1.5rem;
@@ -263,4 +269,122 @@ body {
 
 .border-radius-custom {
     border-radius: 20px;
+}
+
+/* Map styles */
+#map {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.map-section {
+    margin-top: 2rem;
+}
+
+/* Map controls */
+.map-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    background: white;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.map-controls button {
+    margin: 2px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    background: #f8f9fa;
+    color: #495057;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.map-controls button:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+/* Map info windows */
+.gm-style .gm-style-iw-c {
+    border-radius: 10px !important;
+    padding: 0 !important;
+}
+
+.gm-style .gm-style-iw-d {
+    overflow: hidden !important;
+}
+
+.gm-style .gm-style-iw-t::after {
+    background: linear-gradient(45deg, rgba(255,255,255,1) 50%, rgba(255,255,255,0) 51%, rgba(255,255,255,0) 100%) !important;
+}
+
+/* Map marker animations */
+@keyframes markerBounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+.marker-bounce {
+    animation: markerBounce 1s ease-in-out;
+}
+
+/* Map loading state */
+.map-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 500px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    color: #6c757d;
+}
+
+.map-loading .spinner-border {
+    margin-right: 10px;
+}
+
+/* Map legend */
+.map-legend {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 1000;
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    font-size: 0.9rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.legend-item:last-child {
+    margin-bottom: 0;
+}
+
+.legend-item img {
+    margin-right: 8px;
+}
+
+.legend-star {
+    margin-right: 8px;
+    font-size: 1.1rem;
 } 

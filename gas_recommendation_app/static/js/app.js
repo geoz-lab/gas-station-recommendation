@@ -2,6 +2,9 @@
 
 class GasStationApp {
     constructor() {
+        this.map = null;
+        this.markers = [];
+        this.userLocation = null;
         this.initializeEventListeners();
         this.loadConfiguration();
     }
@@ -33,6 +36,213 @@ class GasStationApp {
         });
     }
 
+    initializeMap() {
+        // Wait for Google Maps API to load
+        if (typeof google === 'undefined' || !google.maps) {
+            setTimeout(() => this.initializeMap(), 100);
+            return;
+        }
+
+        const mapElement = document.getElementById('map');
+        if (!mapElement) return;
+
+        // Check if Google Maps API key is available
+        if (!window.googleMapsApiKey) {
+            this.showMapFallback();
+            return;
+        }
+
+        // Initialize map with default location (San Francisco)
+        this.map = new google.maps.Map(mapElement, {
+            center: { lat: 37.7749, lng: -122.4194 },
+            zoom: 12,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapTypeControl: false, // Disable map type control
+            streetViewControl: true,
+            fullscreenControl: true,
+            zoomControl: true,
+            scaleControl: true
+        });
+
+        // Show map controls
+        this.showMapControls();
+    }
+
+    showMapFallback() {
+        const mapElement = document.getElementById('map');
+        if (mapElement) {
+            mapElement.innerHTML = `
+                <div class="map-loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div>
+                        <h6>Google Maps API Key Required</h6>
+                        <p class="mb-0">Please configure your Google Maps API key to view the interactive map.</p>
+                        <small class="text-muted">You can still view gas station recommendations in the list below.</small>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    resetMapView() {
+        if (this.map && this.userLocation) {
+            this.map.setCenter(this.userLocation);
+            this.map.setZoom(13);
+        }
+    }
+
+
+
+    showMapControls() {
+        const mapControls = document.getElementById('mapControls');
+        if (mapControls) {
+            mapControls.style.display = 'block';
+        }
+    }
+
+    showMapLegend() {
+        const mapLegend = document.getElementById('mapLegend');
+        if (mapLegend) {
+            mapLegend.style.display = 'block';
+        }
+    }
+
+    clearMap() {
+        // Clear existing markers
+        this.markers.forEach(marker => marker.setMap(null));
+        this.markers = [];
+    }
+
+    addUserLocationMarker(lat, lng, address = null) {
+        if (!this.map) return;
+
+        const position = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        
+        // Center map on user location
+        this.map.setCenter(position);
+        this.map.setZoom(13);
+
+        // Add user location marker
+        const userMarker = new google.maps.Marker({
+            position: position,
+            map: this.map,
+            title: address || 'Your Location',
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                scaledSize: new google.maps.Size(32, 32)
+            }
+        });
+
+        // Add info window for user location
+        const infoWindow = new google.maps.InfoWindow({
+            content: `<div style="padding: 10px;">
+                <h6><i class="fas fa-map-marker-alt text-primary"></i> Your Location</h6>
+                ${address ? `<p class="mb-0">${address}</p>` : ''}
+            </div>`
+        });
+
+        userMarker.addListener('click', () => {
+            infoWindow.open(this.map, userMarker);
+        });
+
+        this.markers.push(userMarker);
+        this.userLocation = position;
+    }
+
+    addStationMarkers(stations, aiRecommendations = []) {
+        if (!this.map || !stations) return;
+
+        // Ensure map is fully loaded
+        if (!this.map.getCenter) {
+            setTimeout(() => this.addStationMarkers(stations, aiRecommendations), 100);
+            return;
+        }
+
+        stations.forEach((station, index) => {
+            const position = { 
+                lat: parseFloat(station.location?.latitude || station.latitude), 
+                lng: parseFloat(station.location?.longitude || station.longitude) 
+            };
+
+            // Check if this station is AI recommended (only top 5)
+            const isAIRecommended = index < 5 && aiRecommendations.some(rec => 
+                station.name.toLowerCase().includes(rec.toLowerCase()) ||
+                rec.toLowerCase().includes(station.name.toLowerCase())
+            );
+
+            // Get fuel grade and price for marker
+            const markerFuelGrade = document.getElementById('fuelGrade').value;
+            const markerGasPrices = station.gas_prices || {};
+            const markerSelectedPrice = markerGasPrices[markerFuelGrade] || station.price_per_gallon;
+
+            // Create custom marker with price
+            const marker = new google.maps.Marker({
+                position: position,
+                map: this.map,
+                title: isAIRecommended ? ` RECOMMENDED  Gas Station ($${markerSelectedPrice.toFixed(2)})` : ` Gas Station ($${markerSelectedPrice.toFixed(2)})`,
+                label: {
+                    text: `$${markerSelectedPrice.toFixed(2)}`,
+                    color: isAIRecommended ? 'white' : 'black',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                },
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: isAIRecommended ? '#FF4444' : '#4CAF50',
+                    fillOpacity: 0.8,
+                    strokeColor: isAIRecommended ? '#CC0000' : '#2E7D32',
+                    strokeWeight: 2,
+                    scale: isAIRecommended ? 16 : 14
+                }
+            });
+
+            // Create info window content
+            const fuelGrade = document.getElementById('fuelGrade').value;
+            const gasPrices = station.gas_prices || {};
+            const selectedPrice = gasPrices[fuelGrade] || station.price_per_gallon;
+            
+            const infoContent = `
+                <div style="padding: 10px; min-width: 200px;">
+                    <h6><i class="fas fa-gas-pump text-success"></i> ${station.name}</h6>
+                    <p class="mb-1"><strong>Price:</strong> $${selectedPrice.toFixed(2)}/gallon</p>
+                    <p class="mb-1"><strong>Distance:</strong> ${formatDistance(station.distance_miles)}</p>
+                    <p class="mb-1"><strong>Travel Time:</strong> ${formatTime(station.travel_time_minutes)}</p>
+                    <p class="mb-0"><strong>Address:</strong> ${station.location?.address || station.address || 'Address not available'}</p>
+                    ${isAIRecommended ? '<div class="mt-2"><span class="badge bg-warning text-dark"><i class="fas fa-star"></i> RECOMMENDED</span></div>' : ''}
+                </div>
+            `;
+
+            const infoWindow = new google.maps.InfoWindow({
+                content: infoContent
+            });
+
+            marker.addListener('click', () => {
+                infoWindow.open(this.map, marker);
+            });
+
+            this.markers.push(marker);
+        });
+
+        // Fit bounds to show all markers
+        if (this.markers.length > 0) {
+            const bounds = new google.maps.LatLngBounds();
+            this.markers.forEach(marker => {
+                bounds.extend(marker.getPosition());
+            });
+            this.map.fitBounds(bounds);
+            
+            // Add some padding to the bounds
+            const listener = google.maps.event.addListener(this.map, 'idle', () => {
+                if (this.map.getZoom() > 15) {
+                    this.map.setZoom(15);
+                }
+                google.maps.event.removeListener(listener);
+            });
+        }
+    }
+
     async loadConfiguration() {
         try {
             const response = await fetch('/api/config');
@@ -62,12 +272,12 @@ class GasStationApp {
         
         apiStatus += `<div class="mb-2">
             <span class="status-indicator ${config.has_claude ? 'success' : 'error'}"></span>
-            Claude AI: ${config.has_claude ? 'Available' : 'Not configured'}
+            Claude.ai: ${config.has_claude ? 'Available' : 'Not configured'}
         </div>`;
         
         apiStatus += `<div class="mb-2">
             <span class="status-indicator ${config.has_openai ? 'success' : 'error'}"></span>
-            OpenAI: ${config.has_openai ? 'Available' : 'Not configured'}
+            ChatGPT: ${config.has_openai ? 'Available' : 'Not configured'}
         </div></div>`;
         
         statusContent.innerHTML = apiStatus + statusContent.innerHTML;
@@ -215,26 +425,89 @@ class GasStationApp {
     }
 
     displayResults(result) {
+        // Initialize map if not already done
+        if (!this.map) {
+            this.initializeMap();
+        }
+        
+        // Clear existing markers
+        this.clearMap();
+        
+        // Extract AI recommendations first
+        const aiRecommendations = this.extractAIRecommendations(result.analysis);
+        
+        // Sort stations by AI recommendations, cost, and rating
+        let sortedStations = [...result.stations];
+        sortedStations.sort((a, b) => {
+            // First priority: AI recommendations
+            const aIsRecommended = aiRecommendations.some(rec => 
+                a.name.toLowerCase().includes(rec.toLowerCase()) ||
+                rec.toLowerCase().includes(a.name.toLowerCase())
+            );
+            const bIsRecommended = aiRecommendations.some(rec => 
+                b.name.toLowerCase().includes(rec.toLowerCase()) ||
+                rec.toLowerCase().includes(b.name.toLowerCase())
+            );
+            
+            if (aIsRecommended && !bIsRecommended) return -1;
+            if (!aIsRecommended && bIsRecommended) return 1;
+            
+            // Second priority: Total cost
+            const costDiff = Math.abs(a.total_cost - b.total_cost);
+            if (costDiff > 1.0) {
+                // If cost difference is more than $1, sort by cost
+                return a.total_cost - b.total_cost;
+            } else {
+                // If cost difference is less than $1, sort by rating
+                const aRating = a.rating || 0;
+                const bRating = b.rating || 0;
+                return bRating - aRating; // Higher rating first
+            }
+        });
+        
+        // Use all stations for display
+        const displayStations = sortedStations;
+        
+        // Add user location marker
+        if (result.location) {
+            const [lat, lng] = result.location;
+            const address = document.getElementById('locationType').value === 'address' ? 
+                document.getElementById('address').value : null;
+            this.addUserLocationMarker(lat, lng, address);
+        }
+        
+        // Add station markers with a small delay to ensure map is ready
+        if (displayStations.length > 0) {
+            setTimeout(() => {
+                this.addStationMarkers(displayStations, aiRecommendations);
+            }, 500);
+        }
+        
+        // Show map section
+        const mapSection = document.getElementById('mapSection');
+        mapSection.style.display = 'block';
+        
+        // Show map legend if stations are found
+        if (displayStations.length > 0) {
+            this.showMapLegend();
+        }
+        
         // Display stations
         const resultsSection = document.getElementById('resultsSection');
         const resultsContent = document.getElementById('resultsContent');
         
-        if (result.stations && result.stations.length > 0) {
+        if (displayStations.length > 0) {
             let stationsHtml = `
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Total stations found:</strong> ${result.total_stations}
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Stations in range:</strong> ${result.filtered_stations}
-                    </div>
-                </div>
                 <div class="row">
             `;
             
-            result.stations.forEach((station, index) => {
-                const cardClass = this.getStationCardClass(station, index);
-                const isRecommended = index === 0; // First station is recommended
+            displayStations.forEach((station, index) => {
+                const cardClass = this.getStationCardClass(station, index, aiRecommendations);
+                const isAIRecommended = aiRecommendations.some(rec => 
+                    station.name.toLowerCase().includes(rec.toLowerCase()) ||
+                    rec.toLowerCase().includes(station.name.toLowerCase())
+                );
+                const isRecommended = index === 0; // Only mark the top station as recommended
                 
                 // Get fuel needed and grade from the form
                 const fuelNeeded = parseFloat(document.getElementById('fuelValue').value) || 0;
@@ -253,7 +526,7 @@ class GasStationApp {
                                     <h5 class="mb-2">
                                         <i class="fas fa-gas-pump me-2"></i>${station.name}
                                     </h5>
-                                    ${station.address ? `<div class="station-address"><i class="fas fa-map-marker-alt me-2"></i>${station.address}</div>` : ''}
+                                    ${(station.location?.address || station.address) ? `<div class="station-address"><i class="fas fa-map-marker-alt me-2"></i>${station.location?.address || station.address}</div>` : ''}
                                     <p class="mb-1">
                                         <i class="fas fa-route me-2"></i>
                                         ${station.distance_miles.toFixed(1)} miles away
@@ -275,9 +548,9 @@ class GasStationApp {
                                     ${gasPrices['87'] && gasPrices['89'] && gasPrices['91'] ? `
                                         <div class="fuel-grades mt-2">
                                             <small class="text-muted">
-                                                <div>87: $${gasPrices['87'].toFixed(2)}</div>
-                                                <div>89: $${gasPrices['89'].toFixed(2)}</div>
-                                                <div>91: $${gasPrices['91'].toFixed(2)}</div>
+                                                                        <div>87: $${gasPrices['87'].toFixed(2)}</div>
+                        <div>89: $${gasPrices['89'].toFixed(2)}</div>
+                        <div>91: $${gasPrices['91'].toFixed(2)}</div>
                                             </small>
                                         </div>
                                     ` : ''}
@@ -292,7 +565,7 @@ class GasStationApp {
             resultsContent.innerHTML = stationsHtml;
             resultsSection.style.display = 'block';
             
-            // Smooth scroll to results
+            // Smooth scroll to results (not analysis)
             this.smoothScrollTo(resultsSection);
         } else {
             resultsContent.innerHTML = `
@@ -305,7 +578,7 @@ class GasStationApp {
             resultsSection.style.display = 'block';
         }
         
-        // Display AI analysis
+        // Display AI analysis (but don't auto-scroll to it)
         if (result.analysis) {
             const analysisSection = document.getElementById('analysisSection');
             const analysisContent = document.getElementById('analysisContent');
@@ -317,25 +590,106 @@ class GasStationApp {
                         <strong>AI Recommendation Analysis:</strong>
                     </div>
                     <div class="analysis-text">
-                        ${result.analysis.replace(/\n/g, '<br>')}
+                        ${this.formatMarkdown(result.analysis)}
                     </div>
                 </div>
             `;
             analysisSection.style.display = 'block';
-            
-            // Smooth scroll to analysis after a short delay
-            setTimeout(() => {
-                this.smoothScrollTo(analysisSection);
-            }, 500);
         }
     }
 
-    getStationCardClass(station, index) {
-        // Add special styling for top recommendations
+    formatMarkdown(text) {
+        if (!text) return '';
+        
+        // Convert markdown to HTML
+        let html = text
+            // Convert **text** to <strong>text</strong>
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            // Convert *text* to <em>text</em>
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            // Convert line breaks
+            .replace(/\n/g, '<br>');
+        
+        // Handle tables
+        const lines = text.split('\n');
+        let inTable = false;
+        let tableHtml = '';
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            if (line.includes('|') && line.trim().length > 0) {
+                if (!inTable) {
+                    inTable = true;
+                    tableHtml = '<div class="table-responsive"><table class="table table-striped table-sm">';
+                }
+                
+                // Check if this is a header separator line
+                if (line.match(/^\s*\|[\s\-:|]+\|\s*$/)) {
+                    continue; // Skip separator lines
+                }
+                
+                const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
+                const isHeader = i === 0 || (i > 0 && !lines[i-1].includes('|'));
+                
+                if (isHeader) {
+                    tableHtml += '<thead><tr>';
+                    cells.forEach(cell => {
+                        tableHtml += `<th>${cell}</th>`;
+                    });
+                    tableHtml += '</tr></thead><tbody>';
+                } else {
+                    tableHtml += '<tr>';
+                    cells.forEach(cell => {
+                        tableHtml += `<td>${cell}</td>`;
+                    });
+                    tableHtml += '</tr>';
+                }
+            } else if (inTable) {
+                inTable = false;
+                tableHtml += '</tbody></table></div>';
+                html = html.replace(line, tableHtml);
+                tableHtml = '';
+            }
+        }
+        
+        if (inTable) {
+            tableHtml += '</tbody></table></div>';
+            html = html.replace(lines[lines.length - 1], tableHtml);
+        }
+        
+        return html;
+    }
+
+    extractAIRecommendations(analysis) {
+        if (!analysis) return [];
+        
+        // Try to extract station names from AI analysis
+        const recommendations = [];
+        const lines = analysis.split('\n');
+        
+        for (const line of lines) {
+            // Look for patterns like "1. Station Name" or "Station Name -" or "Station Name:"
+            const match = line.match(/^\d+\.\s*(.+?)(?:\s*[-:]\s*|$)/i) || 
+                         line.match(/^(.+?)\s*[-:]\s*/i) ||
+                         line.match(/^(.+?)\s*\(/i) ||
+                         line.match(/\|\s*\d+\s*\|\s*(.+?)\s*\|\s*\$/i); // Match table format
+            
+            if (match) {
+                const stationName = match[1].trim();
+                if (stationName && stationName.length > 2 && !stationName.includes('Rank') && !stationName.includes('Name')) {
+                    recommendations.push(stationName);
+                }
+            }
+        }
+        
+        return recommendations.slice(0, 5); // Return top 5
+    }
+
+    getStationCardClass(station, index, aiRecommendations = []) {
+        // Add special styling only for the top station
         if (index === 0) return 'recommended';
-        if (station.distance_miles <= 2) return 'closest';
-        if (station.price_per_gallon <= 3.5) return 'lowest-price';
-        return '';
+        return 'regular'; // Regular styling for all other stations
     }
 
     smoothScrollTo(element) {
@@ -391,7 +745,12 @@ class GasStationApp {
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new GasStationApp();
+    window.app = new GasStationApp();
+    
+    // Initialize map after a short delay to ensure Google Maps API is loaded
+    setTimeout(() => {
+        window.app.initializeMap();
+    }, 1000);
 });
 
 // Add some utility functions

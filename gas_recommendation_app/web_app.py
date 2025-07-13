@@ -17,7 +17,7 @@ app.secret_key = 'gas_station_recommendation_secret_key_2024'
 @app.route('/')
 def index():
     """Main page"""
-    return render_template('index.html')
+    return render_template('index.html', config=Config)
 
 @app.route('/api/calculate-fuel', methods=['POST'])
 def calculate_fuel():
@@ -97,7 +97,7 @@ def search_stations():
         
         # Get AI analysis
         if filtered_stations:
-            analysis = llm_service.analyze_with_llm(filtered_stations[:10])  # Limit to top 10
+            analysis = llm_service.analyze_with_llm(filtered_stations[:10], fuel_grade)  # Pass fuel grade
         else:
             analysis = "No gas stations found within your range."
         

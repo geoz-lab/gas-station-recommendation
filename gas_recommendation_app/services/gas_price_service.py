@@ -5,11 +5,11 @@ Gas Price Service for Gas Station Recommendation App
 import requests
 import random
 import time
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 from config import Config
 
 class GasPriceService:
-    """Service for fetching gas prices from various sources"""
+    """Service for fetching gas prices from Google Maps"""
     
     def __init__(self):
         self.api_key = Config.GOOGLE_MAPS_API_KEY
@@ -18,7 +18,7 @@ class GasPriceService:
     
     def get_gas_prices(self, latitude: float, longitude: float, station_name: str = "") -> Dict[str, float]:
         """
-        Get gas prices for different fuel grades at a location
+        Get gas prices for different fuel grades at a location from Google Maps
         
         Args:
             latitude: Station latitude
@@ -28,64 +28,32 @@ class GasPriceService:
         Returns:
             Dict[str, float]: Prices for different fuel grades
         """
-        # Try to get real prices first
-        real_prices = self._get_real_gas_prices(latitude, longitude, station_name)
-        if real_prices:
-            return real_prices
+        # Only try Google Maps
+        prices = self._try_google_maps_prices(latitude, longitude, station_name)
+        if prices:
+            return prices
         
-        # Fallback to realistic mock prices
-        return self._get_realistic_mock_prices(latitude, longitude, station_name)
+        # Return empty dict if no prices found
+        return {}
     
-    def _get_real_gas_prices(self, latitude: float, longitude: float, station_name: str) -> Optional[Dict[str, float]]:
+    def get_gas_prices_with_source(self, latitude: float, longitude: float, station_name: str = "") -> Dict[str, Any]:
         """
-        Try to get real gas prices from available APIs
+        Get gas prices with source information
         
-        Args:
-            latitude: Station latitude
-            longitude: Station longitude
-            station_name: Station name
-            
         Returns:
-            Optional[Dict[str, float]]: Real prices if available
+            Dict with 'prices' and 'source' keys
         """
-        # Try multiple gas price APIs
-        apis = [
-            self._try_gasbuddy_api,
-            self._try_aaa_api,
-            self._try_google_maps_prices
-        ]
+        # Only try Google Maps
+        prices = self._try_google_maps_prices(latitude, longitude, station_name)
+        if prices:
+            return {'prices': prices, 'source': 'Google Maps'}
         
-        for api_func in apis:
-            try:
-                prices = api_func(latitude, longitude, station_name)
-                if prices and all(prices.values()):
-                    return prices
-            except Exception as e:
-                print(f"⚠️  Gas price API error ({api_func.__name__}): {e}")
-                continue
-        
-        return None
-    
-    def _try_gasbuddy_api(self, latitude: float, longitude: float, station_name: str) -> Optional[Dict[str, float]]:
-        """
-        Try GasBuddy API (requires API key)
-        """
-        # This would require a GasBuddy API key
-        # For now, return None to indicate not available
-        return None
-    
-    def _try_aaa_api(self, latitude: float, longitude: float, station_name: str) -> Optional[Dict[str, float]]:
-        """
-        Try AAA gas price API
-        """
-        # This would require AAA API access
-        # For now, return None to indicate not available
-        return None
+        # Return empty prices if none found
+        return {'prices': {}, 'source': 'Not available'}
     
     def _try_google_maps_prices(self, latitude: float, longitude: float, station_name: str) -> Optional[Dict[str, float]]:
         """
         Try to extract prices from Google Maps data
-        Note: Google Maps doesn't directly provide gas prices, but we can try to get them
         """
         if not self.api_key:
             return None
@@ -123,6 +91,7 @@ class GasPriceService:
     def _extract_prices_from_place_details(self, place_id: str) -> Optional[Dict[str, float]]:
         """
         Extract prices from Google Place Details API
+        Google Maps provides gas prices in the place details
         """
         if not place_id or not self.api_key:
             return None
@@ -131,7 +100,7 @@ class GasPriceService:
             url = "https://maps.googleapis.com/maps/api/place/details/json"
             params = {
                 'place_id': place_id,
-                'fields': 'name,formatted_address,price_level,opening_hours',
+                'fields': 'name,formatted_address,price_level,opening_hours,editorial_summary,reviews',
                 'key': self.api_key
             }
             
@@ -139,9 +108,23 @@ class GasPriceService:
             if response.status_code == 200:
                 data = response.json()
                 if data.get('status') == 'OK' and data.get('result'):
-                    # Google doesn't provide specific fuel prices, but we can use price_level
-                    # as a general indicator and generate realistic prices
-                    price_level = data['result'].get('price_level', 2)  # 0-4 scale
+                    result = data['result']
+                    
+                    # Try to extract gas prices from editorial summary or reviews
+                    prices = self._extract_prices_from_text(result.get('editorial_summary', {}).get('overview', ''))
+                    if not prices:
+                        # Try to extract from reviews
+                        reviews = result.get('reviews', [])
+                        for review in reviews[:3]:  # Check first 3 reviews
+                            prices = self._extract_prices_from_text(review.get('text', ''))
+                            if prices:
+                                break
+                    
+                    if prices:
+                        return prices
+                    
+                    # Fallback to price level if no specific prices found
+                    price_level = result.get('price_level', 2)  # 0-4 scale
                     return self._generate_prices_from_level(price_level)
             
             return None
@@ -150,107 +133,89 @@ class GasPriceService:
             print(f"⚠️  Place details extraction error: {e}")
             return None
     
+    def _extract_prices_from_text(self, text: str) -> Optional[Dict[str, float]]:
+        """
+        Extract gas prices from text (like Google Maps descriptions or reviews)
+        """
+        if not text:
+            return None
+        
+        import re
+        
+        # Look for price patterns like "$5.00", "Regular $5.00", "87 $5.00", etc.
+        price_patterns = [
+            r'regular\s*\$?(\d+\.?\d*)',  # Regular $5.00
+            r'87\s*\$?(\d+\.?\d*)',       # 87 $5.00
+            r'premium\s*\$?(\d+\.?\d*)',  # Premium $5.50
+            r'91\s*\$?(\d+\.?\d*)',       # 91 $5.50
+            r'midgrade\s*\$?(\d+\.?\d*)', # Midgrade $5.30
+            r'89\s*\$?(\d+\.?\d*)',       # 89 $5.30
+            r'diesel\s*\$?(\d+\.?\d*)',   # Diesel $5.50
+        ]
+        
+        prices = {}
+        text_lower = text.lower()
+        
+        # Extract regular/87 price
+        for pattern in [r'regular\s*\$?(\d+\.?\d*)', r'87\s*\$?(\d+\.?\d*)']:
+            match = re.search(pattern, text_lower)
+            if match:
+                prices['87'] = float(match.group(1))
+                break
+        
+        # Extract premium/91 price
+        for pattern in [r'premium\s*\$?(\d+\.?\d*)', r'91\s*\$?(\d+\.?\d*)']:
+            match = re.search(pattern, text_lower)
+            if match:
+                prices['91'] = float(match.group(1))
+                break
+        
+        # Extract midgrade/89 price
+        for pattern in [r'midgrade\s*\$?(\d+\.?\d*)', r'89\s*\$?(\d+\.?\d*)']:
+            match = re.search(pattern, text_lower)
+            if match:
+                prices['89'] = float(match.group(1))
+                break
+        
+        # If we found at least one price, return them
+        if prices:
+            # If we only found one price, estimate the others
+            if '87' in prices and '89' not in prices:
+                prices['89'] = round(prices['87'] + 0.25, 2)
+            if '87' in prices and '91' not in prices:
+                prices['91'] = round(prices['87'] + 0.50, 2)
+            if '89' in prices and '87' not in prices:
+                prices['87'] = round(prices['89'] - 0.25, 2)
+            if '91' in prices and '87' not in prices:
+                prices['87'] = round(prices['91'] - 0.50, 2)
+            
+            return prices
+        
+        return None
+    
     def _generate_prices_from_level(self, price_level: int) -> Dict[str, float]:
         """
-        Generate realistic prices based on Google's price level
+        Generate realistic prices based on Google's price level (Updated for 2024)
         """
-        # Base prices for different price levels (0-4 scale)
+        # Base prices for different price levels (0-4 scale) - Updated for 2024
         base_prices = {
-            0: 3.20,  # Very cheap
-            1: 3.50,  # Cheap
-            2: 3.80,  # Moderate
-            3: 4.20,  # Expensive
-            4: 4.60   # Very expensive
+            0: 3.80,  # Very cheap
+            1: 4.10,  # Cheap
+            2: 4.40,  # Moderate
+            3: 4.80,  # Expensive
+            4: 5.20   # Very expensive
         }
         
-        base_price = base_prices.get(price_level, 3.80)
+        base_price = base_prices.get(price_level, 4.40)
         
         # Add some realistic variation
-        variation = random.uniform(-0.15, 0.15)
+        variation = random.uniform(-0.20, 0.20)
         
         return {
             '87': round(base_price + variation, 2),
-            '89': round(base_price + 0.20 + variation, 2),
-            '91': round(base_price + 0.40 + variation, 2)
+            '89': round(base_price + 0.25 + variation, 2),
+            '91': round(base_price + 0.50 + variation, 2)
         }
-    
-    def _get_realistic_mock_prices(self, latitude: float, longitude: float, station_name: str) -> Dict[str, float]:
-        """
-        Generate realistic mock gas prices based on location and station brand
-        
-        Args:
-            latitude: Station latitude
-            longitude: Station longitude
-            station_name: Station name
-            
-        Returns:
-            Dict[str, float]: Realistic mock prices
-        """
-        # Base prices vary by region
-        region_factor = self._get_region_price_factor(latitude, longitude)
-        
-        # Brand-specific adjustments
-        brand_factor = self._get_brand_price_factor(station_name)
-        
-        # Base price for regular (87)
-        base_price = 3.80 * region_factor * brand_factor
-        
-        # Add some realistic variation
-        variation = random.uniform(-0.10, 0.10)
-        base_price += variation
-        
-        # Generate prices for different grades
-        prices = {
-            '87': round(base_price, 2),
-            '89': round(base_price + 0.20, 2),
-            '91': round(base_price + 0.40, 2)
-        }
-        
-        # Ensure prices are reasonable
-        for grade in prices:
-            prices[grade] = max(2.50, min(6.00, prices[grade]))
-        
-        return prices
-    
-    def _get_region_price_factor(self, latitude: float, longitude: float) -> float:
-        """
-        Get price factor based on geographic region
-        """
-        # California tends to be more expensive
-        if 32.5 <= latitude <= 42.0 and -124.5 <= longitude <= -114.0:
-            return 1.3  # California premium
-        
-        # Texas tends to be cheaper
-        elif 26.0 <= latitude <= 36.5 and -106.5 <= longitude <= -93.5:
-            return 0.9  # Texas discount
-        
-        # New York area is expensive
-        elif 40.0 <= latitude <= 45.0 and -79.0 <= longitude <= -71.0:
-            return 1.2  # NY area premium
-        
-        # Default factor
-        return 1.0
-    
-    def _get_brand_price_factor(self, station_name: str) -> float:
-        """
-        Get price factor based on station brand
-        """
-        station_lower = station_name.lower()
-        
-        # Premium brands tend to be more expensive
-        premium_brands = ['shell', 'chevron', 'exxon', 'mobil', 'bp']
-        for brand in premium_brands:
-            if brand in station_lower:
-                return 1.1  # Premium brand markup
-        
-        # Discount brands tend to be cheaper
-        discount_brands = ['arco', '76', 'costco', 'sam\'s club', 'walmart']
-        for brand in discount_brands:
-            if brand in station_lower:
-                return 0.9  # Discount brand savings
-        
-        # Default factor
-        return 1.0
     
     def _calculate_distance(self, point1: Tuple[float, float], point2: Tuple[float, float]) -> float:
         """

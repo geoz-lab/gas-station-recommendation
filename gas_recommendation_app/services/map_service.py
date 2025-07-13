@@ -90,6 +90,20 @@ class MapService:
             Optional[Dict]: Parsed gas station data
         """
         try:
+            # Filter out non-gas stations
+            place_name = place.get('name', '').lower()
+            place_types = [t.lower() for t in place.get('types', [])]
+            
+            # Skip if it's clearly not a gas station
+            non_gas_keywords = ['auto', 'repair', 'clinic', 'service', 'tire', 'oil change', 'mechanic', 'car wash', 'detailing']
+            if any(keyword in place_name for keyword in non_gas_keywords):
+                return None
+            
+            # Skip if it doesn't have gas station related types
+            gas_station_types = ['gas_station', 'convenience_store']
+            if not any(gas_type in place_types for gas_type in gas_station_types):
+                return None
+            
             # Extract location
             lat = place['geometry']['location']['lat']
             lng = place['geometry']['location']['lng']
@@ -100,8 +114,9 @@ class MapService:
             # Estimate travel time (assuming 40 mph average)
             travel_time = int((distance / 40) * 60)
             
-            # Get gas prices for different grades
-            gas_prices = gas_price_service.get_gas_prices(lat, lng, place.get('name', ''))
+            # Get gas prices for different grades with source
+            price_data = gas_price_service.get_gas_prices_with_source(lat, lng, place.get('name', ''))
+            gas_prices = price_data['prices']
             price = gas_prices.get('87', 3.80)  # Use regular (87) as default price
             
             return {
@@ -113,6 +128,7 @@ class MapService:
                 },
                 'price_per_gallon': price,
                 'gas_prices': gas_prices,  # Include all fuel grades
+                'price_source': 'Google Maps',  # Only Google Maps
                 'distance_miles': round(distance, 1),
                 'travel_time_minutes': travel_time,
                 'brand': self._extract_brand(place.get('name', '')),
