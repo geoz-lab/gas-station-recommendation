@@ -6,7 +6,7 @@
 [![Flask](https://img.shields.io/badge/Flask-3.0.0-green.svg)](https://flask.palletsprojects.com/)
 [![Status: Active](https://img.shields.io/badge/Status-Active-success.svg)](https://github.com/geoz-lab/gas-station-recommendation)
 
-An AI-powered gas station recommendation app that helps you find the best gas stations based on cost, distance, and travel time. Get intelligent recommendations from Claude AI to save money on gas!
+An AI-powered gas station recommendation web app that helps you find the best gas stations based on cost, distance, travel time, and user review. Get intelligent recommendations from AI agent to save money on gas!
 
 ## 📋 Table of Contents
 - [Features](#-features)
@@ -25,20 +25,20 @@ An AI-powered gas station recommendation app that helps you find the best gas st
 
 ## 🚀 Features
 
-- 🗺️ **Interactive Map**: View gas stations on Google Maps with real-time prices
-- 🤖 **AI Analysis**: Get intelligent recommendations from Claude AI
+- 🗺️ **Interactive Map**: View gas stations on Google Maps with (real-time) prices
+- 🤖 **AI Analysis**: Get intelligent recommendations from AI agent (Claude and ChatGPT)
 - 💰 **Cost Analysis**: Calculate total costs including travel expenses
 - 📍 **Location Services**: Use current location or enter any address
-- 🔒 **Secure**: API keys are encrypted and stored safely
-- 📱 **Responsive Design**: Works on desktop, tablet, and mobile
-- ⚡ **Real-time Data**: Get current gas prices from Google Maps
+- 🔒 **Secure**: API keys (input in the .env)
+- 📱 **Responsive Design**: Works on desktop, tablet, and mobile with a web broswer
+- ⚡ **Real-time Data**: Get current gas prices from Google Maps (if the price accurate)
 
 ## 📋 Prerequisites
 
 Before you start, you'll need:
 - Python 3.8 or higher
 - Google Maps API Key
-- Claude AI API Key (optional but recommended for AI features)
+- Claude.ai (OpenAI) API Key (recommended for AI features)
 
 ## 🛠️ Installation & Setup
 
@@ -54,7 +54,10 @@ pip install -r requirements.txt
 
 ### Step 2: Get API Keys
 
+**For current test version the API key is not provided**
+
 #### Google Maps API Key (Required)
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
 2. Create a new project or select existing one
 3. Enable these APIs:
@@ -91,7 +94,7 @@ When you first open the app, you'll see the Car Setup section:
   - Typical values: 20-35 MPG
   - Find this in your car's manual or online
 - **Fuel Tank Size**: Enter your tank capacity in gallons
-  - Typical values: 12-20 gallons
+  - Typical values: 11-20 gallons
 - **Fuel Grade**: Select your preferred fuel type
   - Regular (87): Most common, cheapest
   - Mid-Grade (89): Better performance
@@ -110,7 +113,7 @@ Select your starting point:
 - **Enter Address**: Type any address (e.g., "123 Main St, San Francisco, CA")
 
 ### 4. **Search Settings**
-- **Search Radius**: How far to look for gas stations (1-50 miles)
+- **Search Radius**: How far to look for gas stations (1-20 miles)
   - Start with 5-10 miles for best results
 
 ### 5. **Find Gas Stations**
@@ -166,7 +169,7 @@ The AI analyzes each station and provides:
 
 #### "API key not configured"
 - Run `python setup.py` to configure your keys
-- Make sure you have valid API keys from Google and Claude
+- Make sure you have valid API keys from Google, Claude, and/or OpenAI
 
 #### "No gas stations found"
 - **Increase search radius** (try 10-15 miles)
@@ -179,7 +182,7 @@ The AI analyzes each station and provides:
 - **Check internet connection**
 
 #### "AI analysis not working"
-- **Check Claude API key** is valid
+- **Check API key** is valid
 - **Verify internet connection**
 - **Try refreshing the page**
 
@@ -195,14 +198,14 @@ The AI analyzes each station and provides:
 
 ## 🔒 Security & Privacy
 
-- **API keys are encrypted** using Fernet encryption
+- **API keys are encrypted**
 - **No personal data** is stored or transmitted
 - **Location data** is only used for gas station search
-- **All API calls** are made directly from your browser
+- **All API calls** are made directly from browser
 
 ## 📱 Mobile Usage
 
-The app works great on mobile devices:
+The app will work great on mobile devices:
 - **Responsive design** adapts to screen size
 - **Touch-friendly** interface
 - **GPS location** works on mobile browsers
@@ -244,9 +247,9 @@ gas_station_recommendation/
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-**Note**: While this project is open source, please respect the terms of service for the external APIs used (Google Maps and Claude AI).
+**Note**: While this project is open source, please respect the terms of service for the external APIs used (Google Maps, Claude AI, OpenAI).
 
-## 🤝 Contributing
+## 🤝 Contributing and Future Work
 
 We welcome contributions! Here's how you can help:
 
@@ -262,11 +265,11 @@ We welcome contributions! Here's how you can help:
 
 ### 🔧 **Code Contributions**
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create a feature branch (`git checkout -b feature/amazing-features`)
 3. Make your changes
 4. Test thoroughly
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
+5. Commit your changes (`git commit -m 'Add amazing features'`)
+6. Push to the branch (`git push origin feature/amazing-features`)
 7. Open a Pull Request
 
 ### 📝 **Code Style**
@@ -274,6 +277,11 @@ We welcome contributions! Here's how you can help:
 - Add comments for complex logic
 - Update documentation as needed
 - Test your changes before submitting
+
+## 🤔 **Future Directions**
+- Accurate gas price input (likely from Gasbuddy or AAA)
+- Better analysis, e.g. search gas stations along the trip
+- Fancy web design (I am not familiar with frontend)
 
 **Thank you for contributing!** 🚀
 
