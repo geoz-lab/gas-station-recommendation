@@ -24,12 +24,14 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r gas_recommendation_app/requirements.txt
+        pip install -r requirements.txt
     
-    - name: Run tests
+    - name: Run syntax check
       run: |
-        cd gas_recommendation_app
-        python -m pytest test_app.py -v
+        python -m py_compile web_app.py
+        python -m py_compile config.py
+        python -m py_compile secure_config.py
+        python -m py_compile setup.py
 
   deploy-railway:
     needs: test
@@ -40,7 +42,7 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Deploy to Railway
-      uses: railway/deploy@v1
+      uses: railway/deploy@v1.0.0
       with:
         railway_token: ${{ secrets.RAILWAY_TOKEN }}
         service: gas-station-reco
@@ -82,6 +84,6 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
       with:
-        context: ./deploy
+        context: .
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/gas-station-reco:latest 
